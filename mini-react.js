@@ -9,20 +9,40 @@ class ReactElement {
   }
 }
 
-var createElement = function (type, config, children) {
-  var props = {}
-  Object.assign(props, config)
-  props.children = children
-  return new ReactElement(type, props)
+const createElement = (type, config, children) =>
+  new ReactElement(type, Object.assign({}, config, {children}))
+
+
+let DOM = {
+  h1: (config, children) => createElement('h1', config, children),
+  div: (config, children) => createElement('div', config, children)
 }
 
-let DOM = {}
-;['div', 'a', 'h1', 'p'].map(type => DOM[type] = (config, children) => {
-  return createElement(type, config, children)
-})
+// ;['div', 'a', 'h1', 'p'].map(type => DOM[type] = function createDOMElement(config, children) {
+//   return createElement(type, config, children)
+// })
 
-class ReactDOMTextComponent {
+class Component {
+  constructor(props, updater) {
+    this.props = props
+    this.updater = updater
+    this.state = this.getInitialState()
+  }
+  getInitialState () {
+    return {}
+  }
+  setState (newState) {
+    Object.assign(this.state, newState)
+    this.updater.receiveComponent(this.render())
+  }
+  render () {
+    return this._currentElement
+  }
+}
+
+class ReactDOMTextComponent extends Component {
   constructor (text) {
+    super(text)
     this._currentElement = text
   }
   mountComponent (rootId) {
@@ -31,8 +51,9 @@ class ReactDOMTextComponent {
   }
 }
 
-class ReactDOMComponent {
+class ReactDOMComponent extends Component {
   constructor (element) {
+    super(element)
     this._currentElement = element
   }
   mountComponent(rootId) {
@@ -58,20 +79,21 @@ class ReactDOMComponent {
   }
 }
 
-class ReactCompositeComponent {
+class ReactCompositeComponent extends Component {
   constructor (element) {
+    super(element)
     this._currentElement = element
   }
   mountComponent (rootId) {
     this._rootId = rootId
-    let elementInstance = new this._currentElement.type(this._currentElement.props)
-    let renderedElement = elementInstance.render()
+    let componentInstance = new this._currentElement.type(this._currentElement.props)
+    let renderedElement = componentInstance.render()
     this._renderedComponent = instantiateReactComponent(renderedElement)
     return this._renderedComponent.mountComponent(rootId)
   }
 }
 
-function instantiateReactComponent(el) {
+const instantiateReactComponent = (el) => {
   if(typeof el === 'object') {
     if (typeof el.type === 'string') {
       return new ReactDOMComponent(el)
@@ -80,24 +102,6 @@ function instantiateReactComponent(el) {
     }
   } else if (typeof el === 'string' || typeof el === 'number') {
     return new ReactDOMTextComponent(el)
-  }
-}
-
-class Component {
-  constructor(props, updater) {
-    this.props = props
-    this.updater = updater
-    this.state = this.getInitialState()
-  }
-  getInitialState () {
-    return {}
-  }
-  setState (newState) {
-    Object.assign(this.state, newState)
-    this.updater.receiveComponent(this.render())
-  }
-  render () {
-    return { type: 'div', props: {} }
   }
 }
 
@@ -115,6 +119,22 @@ const registerComponent = (component, container) => {
 }
 
 const getRootIdString = () => `.${containerIndex++}`
+
+const getNode = (targetId) => {
+  let sequenceId = targetId
+    .split('.')
+    .shift()
+  let child = containersByReactRootID.get(targetId.slice(0, 2))
+  while (child) {
+    const id = child.getAttribute('data-reactid')
+    if (id === targetId) {
+      return child
+    }
+    child = child.children
+      ? child.children[sequenceId.shift()]
+      : null
+  }
+}
 
 const React = {
   DOM,
