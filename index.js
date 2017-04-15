@@ -1,17 +1,19 @@
-// Element.type is string ('div', 'h1') or fn
-// but also the element itself can be a string, not obj
-// from El, inst C
 class Header extends Component {
+  myClickHandler(event) {
+    debugger
+    console.log('handling', event)
+  }
   render () {
-    return DOM.div({ className: 'c1'}, [
-      DOM.h1(null, [this.props.title])
+    return DOM.div({ className: 'c1' }, [
+      DOM.div({ className: 'c2'}, [
+        DOM.h1(null, [this.props.title]),
+        DOM.p({onClick: (event) => this.myClickHandler(event)}, ['Just some paragraph text'])
+      ])
     ])
   }
 }
 
 render(
-  // React.createElement('h1', null, ['This is a header']),
-  DOM.h1(null, ['Another method of creating a header']),
-  // React.createElement(Header, { title: 'Mini React' }),
+  React.createElement(Header, { title: 'Mini React' }),
   document.getElementById('root')
 )
